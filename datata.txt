@@ -1,0 +1,113 @@
+filebeat.prospectors:
+- input_type: log
+  paths:
+    - /home/v_rumengan/sip_svr_.20170614_152510_444.log
+  include_lines: '^@'
+  multiline.pattern: '^\t'
+  multiline.negate: false
+  multiline.match: after
+output.logstash:
+  hosts: ["localhost:5043"]
+
+sudo bin/filebeat -e -c /etc/filebeat/filebeat.yml -d "publish"
+sudo bin/logstash -f /etc/logstash/conf.d/first-pipeline.conf
+
+**Filebeat**
+
+To configure Filebeat, you need to edit the configuration file. You'll find the configuration file at  ///etc/filebeat/filebeat.yml// . 
+Here is a sample of the filebeat section of the //filebeat.yml// file.
+
+```
+filebeat.prospectors:
+- input_type: log
+  paths:
+    - /home/v_rumengan/sip_svr_.20170614_152510_444.log
+  include_lines: '^@'
+  multiline.pattern: '^\t'
+  multiline.negate: false
+  multiline.match: after
+output.logstash:
+  hosts: ["localhost:5043"]
+```
+To configure Filebeat:
+  # Define the path (or paths) to your log files. 
+The most basic configuration is, you can set a single prospector to a single path.
+```
+filebeat.prospectors:
+- input_type: log
+  paths:
+    - /home/v_rumengan/sip_svr_.20170614_152510_444.log
+```
+With above configuration, the prospector will harvest //sip_svr_.20170614_152510_444.log// from ///home/v_rumengan///
+
+#Set the output
+
+If you are sending output directly to Elasticsearch (and not using Logstash), set the IP address and port where Filebeat can find the Elasticsearch installation:
+
+```
+output.elasticsearch:
+  hosts: ["localhost:9200"]
+```
+If you are sending output to Logstash, make sure you configure the Logstash output. To do this you need to edit the configuration 
+
+```
+output.logstash:
+  hosts: ["localhost:5043"]
+
+```
+The hosts option specifies the Logstash server and the port (5044) where Logstash is configured to listen for incoming Beats connections.
+
+  #Advanced configuration
+include_lines
+exclude_lines
+
+
+  #multiline messages
+To handle message with multiple lines, we have to specify multiline settings to specify which line are the part of a single event.
+Setting uder multiline (pattern, negate, and match)
+pattern -> to specify regex to match
+negate -> to specify whether the pattern is negated 
+match -> to specify how filebeat combines matching lines into one event.
+
+
+**Logstash**
+
+To configure logstash you need to create a configuration file to define the setting (input, output, and filter to be applied)
+This is the configuration that we use in our Logstash :
+
+```
+input {
+    beats {
+        port => "5043"
+    }
+}
+filter {
+    grok {
+        match => { "message" => "@%{TIME:jm} \[\d\] %{IP:client} %{GREEDYDATA:distrib
+ute}: %{WORD:t_event} %{WORD:event_message}%{GREEDYDATA:allvariable}" }
+    }
+    geoip {
+        source => "client"
+    }
+    kv {
+        source => "allvariable"
+        field_split => "\n\t"
+        value_split => "\t"
+        include_brackets => false
+    }
+}
+output {
+    elasticsearch {
+        hosts => [ "localhost:9200" ]
+        index => "genesys-sip-%{+YYYY.MM.dd}"
+    }
+    stdout { codec => rubydebug }
+}
+```
+Details :
+input
+filter
+output
+
+
+
