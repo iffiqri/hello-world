@@ -1,0 +1,22 @@
+- [ISCC] message are failed to parse.
+- need to define new pattern for 'request' event
+
+filebeat.prospectors:
+        - type: log
+          paths:
+                  - /home/docu/sip_sample/*
+          include_lines: ['^@','^\d{4}-\d{2}-\d{2}.*Trc.*Request']
+          multiline.pattern: '^\t'
+          multiline.negate: false
+          multiline.match: after
+output.logstash:
+          hosts: ["localhost:5043"]
+
+
+TO DOs:
+1. Check external connection for kibana and elasticsearch
+2. Check w/ Mas Harry about error SIP log and filebeat installation on SIP Server
+3. Check abour Elastic Server Storage to server team.
+4. Check how much storage needed to store 2 weeks of log data.
+
+
